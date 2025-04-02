@@ -85,14 +85,15 @@ const createHandLandmarker = async () => {
     } catch (error) {
         console.error("Lỗi khi khởi tạo HandLandmarker:", error);
     }
-} 
+};
+
 // Đợi cho đến khi DOM được tải xong
 document.addEventListener('DOMContentLoaded', () => {
     createHandLandmarker();
     
     // Khởi tạo các nút và sự kiện
     if (hasGetUserMedia()) {
-        enableWebcamButton = document.getElementById("webcamButton");
+enableWebcamButton = document.getElementById("webcamButton");
         if (enableWebcamButton) {
             enableWebcamButton.addEventListener("click", enableCam);
         } else {
@@ -102,17 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn("Trình duyệt của bạn không hỗ trợ getUserMedia()");
     }
 });
-function updateJSONData(handData) {
-    fetch('data.json', {
-        method: 'PUT',  // Hoặc dùng GitHub Actions để cập nhật
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(handData)
-    }).then(response => console.log("Dữ liệu cập nhật:", response));
-}
-
-
-
-updateJSONData(handData);
 
 /********************************************************************
 // Xử lý webcam
@@ -198,107 +188,3 @@ async function predictWebcam() {
     if (results?.landmarks) {
         for (let i = 0; i < results.landmarks.length; i++) {
             const landmarks = results.landmarks[i];
-            const handedness = results.handednesses[i][0];
-            
-            if (landmarks?.length > 0) {
-                try {
-                    // Debug log để kiểm tra handedness
-                    console.log(`Hand ${i}: ${handedness}`);
-                    
-                    // Xác định tay trái/phải dựa trên vị trí của bàn tay trên màn hình
-                    const palmX = landmarks[0].x; // Vị trí x của điểm gốc bàn tay
-                    const displayHandedness = palmX < 0.5 ? "Right" : "Left";
-                    
-                    // Tính khoảng cách giữa ngón cái và ngón trỏ
-                    const thumbTip = landmarks[4]; // Điểm đầu ngón cái
-                    const indexTip = landmarks[8]; // Điểm đầu ngón trỏ
-                    const distance = calculateDistance(thumbTip, indexTip) * 1000; // Nhân với 1000 để có giá trị lớn hơn
-                    
-                    // Ánh xạ khoảng cách thành 8 mức độ sáng (0-255)
-                    // Khoảng cách từ 0-1000 sẽ được chia thành 8 mức
-                    let brightnessLevel;
-                    if (distance < 56) brightnessLevel = 0;
-                    else if (distance < 112) brightnessLevel = 36; 
-                    else if (distance < 168) brightnessLevel = 73; 
-                    else if (distance < 224) brightnessLevel = 109; 
-                    else if (distance < 280) brightnessLevel = 146; 
-                    else if (distance < 336) brightnessLevel = 182; 
-                    else if (distance < 392) brightnessLevel = 218; 
-                    else brightnessLevel = 255;                      
-                    
-                    const clampedBrightness = brightnessLevel;
-
-                    
-                    // Vẽ các đường kết nối
-                    for (const connection of HAND_CONNECTIONS) {
-                        const start = landmarks[connection[0]];
-                        const end = landmarks[connection[1]];
-                        canvasCtx.beginPath();
-                        canvasCtx.moveTo(start.x * canvasElement.width, start.y * canvasElement.height);
-                        canvasCtx.lineTo(end.x * canvasElement.width, end.y * canvasElement.height);
-                        // Đổi màu cho rõ ràng hơn
-                        canvasCtx.strokeStyle = displayHandedness === "Right" ? "#FF0000" : "#00FF00";
-                        canvasCtx.lineWidth = 5;
-                        canvasCtx.stroke();
-                    }
-
-                    // Vẽ các điểm landmarks
-                    for (const landmark of landmarks) {
-                        canvasCtx.beginPath();
-                        canvasCtx.arc(
-                            landmark.x * canvasElement.width,
-                            landmark.y * canvasElement.height,
-                            3,
-                            0,
-                            2 * Math.PI
-                        );
-                        // Đổi màu cho rõ ràng hơn
-                        canvasCtx.fillStyle = displayHandedness === "Right" ? "#FF0000" : "#00FF00";
-                        canvasCtx.fill();
-                    }
-
-                    // Vẽ nhãn tay và số ngón tay
-                    const fingerCount = countFingers(landmarks, displayHandedness);
-                    const labelX = landmarks[0].x * canvasElement.width;
-                    const labelY = landmarks[0].y * canvasElement.height;
-                    
-                    canvasCtx.font = "bold 20px Arial";
-                    let text;
-                    if (displayHandedness === "Right") {
-                        text = `Tay phải: ${fingerCount} ngón`;
-                    } else {
-                        text = `Tay trái: Độ sáng ${clampedBrightness}`;
-                    }
-                    console.log(`fingerCount: ${fingerCount}, LED Brightness: ${clampedBrightness}`);
-
-                    const textWidth = canvasCtx.measureText(text).width;
-                    const textX = labelX + 20;
-                    
-                    // Vẽ background cho text
-                    canvasCtx.fillStyle = displayHandedness === "Right" ? "rgba(100, 66, 66, 0.5)" : "rgba(66, 95, 66, 0.5)";
-                    canvasCtx.fillRect(textX - 5, labelY - 25, textWidth + 10, 30);
-                    
-                    // Lưu trạng thái canvas hiện tại
-                    canvasCtx.save();
-                    // Lật ngược text để hiển thị đúng chiều
-                    canvasCtx.scale(-1, 1);
-                    canvasCtx.translate(-textX - textWidth, labelY);
-                    
-                    // Vẽ text
-                    canvasCtx.fillStyle = displayHandedness === "Right" ? "#FF0000" : "#00FF00";
-                    canvasCtx.fillText(text, 0, 0);
-                    
-                    // Khôi phục trạng thái canvas
-                    canvasCtx.restore();
-
-                } catch (error) {
-                    console.error("Lỗi khi vẽ landmarks:", error);
-                }
-            }
-        }
-    }
-
-    if (webcamRunning) {
-        window.requestAnimationFrame(predictWebcam);
-    }
-}
