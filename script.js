@@ -85,8 +85,7 @@ const createHandLandmarker = async () => {
     } catch (error) {
         console.error("Lỗi khi khởi tạo HandLandmarker:", error);
     }
-};
-
+} 
 // Đợi cho đến khi DOM được tải xong
 document.addEventListener('DOMContentLoaded', () => {
     createHandLandmarker();
@@ -217,9 +216,7 @@ async function predictWebcam() {
                     else brightnessLevel = 255;                      
                     
                     const clampedBrightness = brightnessLevel;
-                    
-                    // Debug log để kiểm tra giá trị
-                    console.log(`Distance: ${distance.toFixed(3)}, LED Brightness: ${clampedBrightness}`);
+
                     
                     // Vẽ các đường kết nối
                     for (const connection of HAND_CONNECTIONS) {
@@ -261,6 +258,8 @@ async function predictWebcam() {
                     } else {
                         text = `Tay trái: Độ sáng ${clampedBrightness}`;
                     }
+                    console.log(`fingerCount: ${fingerCount}, LED Brightness: ${clampedBrightness}`);
+
                     const textWidth = canvasCtx.measureText(text).width;
                     const textX = labelX + 20;
                     
