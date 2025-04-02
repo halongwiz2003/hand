@@ -1,74 +1,30 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hand Landmark Detection</title>
     <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <style>
-        #overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
-            background-color: rgba(0, 0, 0, 0.5);
-            padding: 20px;
-            border-radius: 10px;
-        }
-    </style>
 </head>
 <body>
-    <!-- Hiển thị nhân vật và hướng dẫn -->
-    <div id="overlay">
-        <p>Hãy nói "Vừng ơi mở ra" để mở webcam</p>
-    </div>
+  
 
-    <div id="liveView" class="videoView" style="display: none;">
-        <button id="webcamButton" class="mdc-button mdc-button--raised">
-            <span class="mdc-button__ripple"></span>
-            <span class="mdc-button__label">Bật Webcam</span>
-        </button>
-        <div style="position: relative;">
-            <video id="webcam" style="position: absolute" autoplay playsinline></video>
-            <canvas class="output_canvas" id="output_canvas" style="position: absolute; left: 0px; top: 0px;"></canvas>
+        <div id="liveView" class="videoView">
+            <button id="webcamButton" class="mdc-button mdc-button--raised">
+                <span class="mdc-button__ripple"></span>
+                <span class="mdc-button__label">ENABLE WEBCAM</span>
+            </button>
+            <div style="position: relative;">
+                <video id="webcam" style="position: absolute" autoplay playsinline></video>
+                <canvas class="output_canvas" id="output_canvas" style="position: absolute; left: 0px; top: 0px;"></canvas>
+            </div>
         </div>
-    </div>
+    </section>
 
     <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script type="module" src="script.js"></script>
-
-    <script>
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognition.lang = "vi-VN";
-        recognition.continuous = false;
-        recognition.interimResults = false;
-
-        recognition.onresult = (event) => {
-            const speechResult = event.results[0][0].transcript.trim().toLowerCase();
-            console.log("Bạn nói:", speechResult);
-            if (speechResult === "vừng ơi mở ra") {
-                document.getElementById("overlay").style.display = "none";
-                document.getElementById("liveView").style.display = "block";
-                enableWebcam(); // Gọi hàm trong script.js để bật webcam
-            }
-        };
-
-        recognition.onerror = (event) => {
-            console.error("Lỗi nhận diện:", event.error);
-        };
-
-        // Tự động kích hoạt lắng nghe khi trang tải
-        window.onload = () => {
-            recognition.start();
-        };
-    </script>
 </body>
-</html>
+</html> 
