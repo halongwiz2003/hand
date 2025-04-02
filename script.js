@@ -4,27 +4,6 @@ import {
     DrawingUtils
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
-// Thêm WebSocket connection
-const ws = new WebSocket('ws://192.168.157.222:81'); // Thay đổi IP này thành IP của ESP32 của bạn
-
-// Biến để lưu trữ trạng thái kết nối
-let isConnected = false;
-
-ws.onopen = function() {
-    console.log('Đã kết nối với ESP32');
-    isConnected = true;
-};
-
-ws.onerror = function(error) {
-    console.error('Lỗi WebSocket:', error);
-    isConnected = false;
-};
-
-ws.onclose = function() {
-    console.log('Mất kết nối với ESP32');
-    isConnected = false;
-};
-
 // Hàm tính khoảng cách giữa hai điểm
 function calculateDistance(point1, point2) {
     const dx = point1.x - point2.x;
@@ -302,19 +281,6 @@ async function predictWebcam() {
                     // Khôi phục trạng thái canvas
                     canvasCtx.restore();
 
-                    // Gửi dữ liệu qua WebSocket với thông tin phù hợp cho từng tay
-                    // Chỉ gửi khi có sự thay đổi
-                    if (displayHandedness === "Right") {
-                        if (fingerCount !== lastFingerCount) {
-                            sendDataToESP32(fingerCount, lastBrightness, true);
-                            lastFingerCount = fingerCount;
-                        }
-                    } else {
-                        if (clampedBrightness !== lastBrightness) {
-                            sendDataToESP32(lastFingerCount, clampedBrightness, false);
-                            lastBrightness = clampedBrightness;
-                        }
-                    }
                 } catch (error) {
                     console.error("Lỗi khi vẽ landmarks:", error);
                 }
@@ -326,20 +292,3 @@ async function predictWebcam() {
         window.requestAnimationFrame(predictWebcam);
     }
 }
-
-// Hàm gửi dữ liệu qua WebSocket
-function sendDataToESP32(fingers, brightness, isRightHand) {
-    if (!isConnected) {
-        console.log('Chưa kết nối với ESP32');
-        return;
-    }
-
-    try {
-        // Gửi cả hai dữ liệu cùng lúc với định dạng: "fingers,brightness"
-        const data = `${fingers},${brightness}`;
-        ws.send(data);
-        console.log('Đã gửi dữ liệu:', data);
-    } catch (error) {
-        console.error('Lỗi khi gửi dữ liệu:', error);
-    }
-} 
