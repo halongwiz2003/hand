@@ -3,6 +3,7 @@ import {
     FilesetResolver,
     DrawingUtils
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+
 // Hàm tính khoảng cách giữa hai điểm
 function calculateDistance(point1, point2) {
     const dx = point1.x - point2.x;
@@ -101,6 +102,17 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn("Trình duyệt của bạn không hỗ trợ getUserMedia()");
     }
 });
+function updateJSONData(handData) {
+    fetch('data.json', {
+        method: 'PUT',  // Hoặc dùng GitHub Actions để cập nhật
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(handData)
+    }).then(response => console.log("Dữ liệu cập nhật:", response));
+}
+
+
+
+updateJSONData(handData);
 
 /********************************************************************
 // Xử lý webcam
@@ -258,6 +270,7 @@ async function predictWebcam() {
                         text = `Tay trái: Độ sáng ${clampedBrightness}`;
                     }
                     console.log(`fingerCount: ${fingerCount}, LED Brightness: ${clampedBrightness}`);
+
                     const textWidth = canvasCtx.measureText(text).width;
                     const textX = labelX + 20;
                     
