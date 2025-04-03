@@ -3,6 +3,96 @@ import {
     FilesetResolver,
     DrawingUtils
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+// Cấu hình Firebase trong web app
+const firebaseConfig = {
+    apiKey: "AIzaSyDCsHgRfDraiMLGlV9BFQ7IPIBOuYbpX9Y",
+    authDomain: "hand-c4356.firebaseapp.com",
+    databaseURL: "https://hand-c4356-default-rtdb.firebaseio.com",
+    projectId: "hand-c4356",
+    storageBucket: "hand-c4356.firebasestorage.app",
+    messagingSenderId: "796352578244",
+    appId: "1:796352578244:web:066c7b463f90bdd0517f91",
+    measurementId: "G-JFXB5BG3NV"
+  };
+  const app = firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+  async function sendOverwriteData(fingers, brightness, options = {}) {
+    // Cấu hình mặc định
+    const config = {
+      nodePath: 'currentState',
+      forceKey: null,
+      ...options
+    };
+  
+    // Tạo payload tối ưu
+    const payload = {
+      fingers: fingers,
+      brightness: brightness,
+      timestamp: firebase.database.ServerValue.TIMESTAMP,
+      deviceType: "github-web",
+      _hash: Math.random().toString(36).substring(2, 9) // ID phiên làm việc
+    };
+  
+    try {
+      const db = firebase.database();
+      let ref;
+  
+      if (config.forceKey) {
+        // Ghi đè lên key có sẵn
+        ref = db.ref(`${config.nodePath}/${config.forceKey}`);
+      } else {
+        // Tạo node mới (vẫn ghi đè nếu trùng key)
+        ref = db.ref(config.nodePath).push();
+      }
+  
+      // Thực hiện ghi đè
+      await ref.set(payload);
+      
+      return {
+        success: true,
+        key: ref.key,
+        error: null
+      };
+    } catch (error) {
+      return {
+        success: false,
+        key: null,
+        error: `Lỗi Firebase: ${error.message}`
+      };
+    }
+  }
+  
+  /**************************
+   * CÁCH SỬ DỤNG TRONG THỰC TẾ *
+   **************************/
+  
+  // 1. Ghi đè lên node mặc định (tạo key tự động)
+  sendOverwriteData(3, 75).then(result => {
+    if (result.success) {
+      console.log(`Đã ghi đè dữ liệu, key: ${result.key}`);
+      // ESP32 có thể đọc tại path: /currentState/<key>
+    }
+  });
+  
+  // 2. Ghi đè lên key cụ thể (dành cho ESP32)
+  sendOverwriteData(2, 50, {
+    nodePath: 'deviceControls',
+    forceKey: "esp32_01" // Ghi đè lên key cố định
+  });
+  
+// Cleanup khi dữ liệu > 50 records
+const cleanupOldDataIfNeeded = async () => {
+    const snapshot = await firebase.database().ref('handTracking').once('value');
+    if (snapshot.numChildren() > 50) {
+      const oldestQuery = firebase.database().ref('handTracking')
+        .orderByChild('timestamp')
+        .limitToFirst(10); // Xóa 10 bản ghi cũ nhất
+      
+      const oldest = await oldestQuery.once('value');
+      oldest.forEach(child => child.ref.remove());
+    }
+
+}
 
 // Hàm tính khoảng cách giữa hai điểm
 function calculateDistance(point1, point2) {
@@ -268,7 +358,10 @@ async function predictWebcam() {
                         text = `Tay trái: Độ sáng ${clampedBrightness}`;
                     }
                     console.log(`fingerCount: ${fingerCount}, LED Brightness: ${clampedBrightness}`);
-
+                      sendOverwriteData(fingerCount, clampedBrightness, {
+                        nodePath: 'deviceControls',
+                        forceKey: "esp32_01" // Ghi đè lên key cố định
+                      });
                     const textWidth = canvasCtx.measureText(text).width;
                     const textX = labelX + 20;
                     
