@@ -25,7 +25,7 @@
 <body>
     <!-- Hiển thị nhân vật và hướng dẫn -->
     <div id="overlay">
-        <p>Hãy nói "Vừng ơi mở ra" để mở webcam</p>
+        <p>HÃY NÓI MẬT KHẨU </p>
     </div>
 
     <div id="liveView" class="videoView" style="display: none;">
@@ -62,9 +62,9 @@
                 if (typeof enableWebcam === "function") {
                     enableWebcam(); // Gọi hàm trong script.js để bật webcam
                 } else {
-console.error("Hàm enableWebcam chưa được định nghĩa.");
+                    console.error("Hàm enableWebcam chưa được định nghĩa.");
                 }
-            }
+}
         };
 
         recognition.onerror = (event) => {
