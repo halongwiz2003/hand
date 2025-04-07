@@ -30,7 +30,6 @@ const firebaseConfig = {
       brightness: brightness,
       timestamp: firebase.database.ServerValue.TIMESTAMP,
       deviceType: "github-web",
-      _hash: Math.random().toString(36).substring(2, 9) // ID phiên làm việc
     };
   
     try {
@@ -105,43 +104,59 @@ function calculateDistance(point1, point2) {
 function mapValue(value, fromMin, fromMax, toMin, toMax) {
     return ((value - fromMin) * (toMax - toMin)) / (fromMax - fromMin) + toMin;
 }
+function countbrightnes(landmarks, handedness) {
+    
+        let brightnessLevel ;
+
+        const thumbTip = landmarks[4]; // Điểm đầu ngón cái
+        const indexTip = landmarks[8]; // Điểm đầu ngón trỏ
+        const distance = calculateDistance(thumbTip, indexTip) * 1000; // Nhân với 1000 để có giá trị lớn hơn
+
+        // Ánh xạ khoảng cách thành 8 mức độ sáng (0-255)
+        if (distance < 42) brightnessLevel = 0;
+        else if (distance < 84) brightnessLevel = 36; 
+        else if (distance < 126) brightnessLevel = 73; 
+        else if (distance < 168) brightnessLevel = 109; 
+        else if (distance < 210) brightnessLevel = 146; 
+        else if (distance < 252) brightnessLevel = 182;     
+        else if (distance < 294) brightnessLevel = 218; 
+        else brightnessLevel = 255;                      
+        return brightnessLevel;
+    
+}
 
 // Hàm đếm số ngón tay
 function countFingers(landmarks, handedness) {
     let fingerCount = 0;
-    
+
     // Đếm ngón cái (dựa vào vị trí ngang của điểm 4 so với điểm 3)
-    if (handedness === "Right") {
         if (landmarks[4].x > landmarks[3].x) {
             fingerCount++;
         }
-    } else { // Left hand
-        if (landmarks[4].x < landmarks[3].x) {
+        
+        // Đếm ngón trỏ (dựa vào vị trí dọc của điểm 8 so với điểm 6)
+        if (landmarks[8].y < landmarks[6].y) {
             fingerCount++;
         }
-    }
+        
+        // Đếm ngón giữa (dựa vào vị trí dọc của điểm 12 so với điểm 10)
+        if (landmarks[12].y < landmarks[10].y) {
+            fingerCount++;
+        }
+        
+        // Đếm ngón áp út (dựa vào vị trí dọc của điểm 16 so với điểm 14)
+        if (landmarks[16].y < landmarks[14].y) {
+            fingerCount++;
+        }
+        
+        // Đếm ngón út (dựa vào vị trí dọc của điểm 20 so với điểm 18)
+        if (landmarks[20].y < landmarks[18].y) {
+            fingerCount++;
+        }
+            return fingerCount;
+
     
-    // Đếm ngón trỏ (dựa vào vị trí dọc của điểm 8 so với điểm 6)
-    if (landmarks[8].y < landmarks[6].y) {
-        fingerCount++;
-    }
-    
-    // Đếm ngón giữa (dựa vào vị trí dọc của điểm 12 so với điểm 10)
-    if (landmarks[12].y < landmarks[10].y) {
-        fingerCount++;
-    }
-    
-    // Đếm ngón áp út (dựa vào vị trí dọc của điểm 16 so với điểm 14)
-    if (landmarks[16].y < landmarks[14].y) {
-        fingerCount++;
-    }
-    
-    // Đếm ngón út (dựa vào vị trí dọc của điểm 20 so với điểm 18)
-    if (landmarks[20].y < landmarks[18].y) {
-        fingerCount++;
-    }
-    
-    return fingerCount;
+
 }
 
 const HAND_CONNECTIONS = [
@@ -258,14 +273,13 @@ function enableCam() {
 
 let lastVideoTime = -1;
 let results = undefined;
-
+let fingerCount = 0;
+let clampedBrightness = 0;
 // Thêm biến để lưu trữ giá trị trước đó
-let lastFingerCount = 0;
-let lastBrightness = 0;
+
 
 async function predictWebcam() {
     if (!canvasElement || !canvasCtx || !video.videoWidth) return;
-
     // Cập nhật kích thước canvas
     canvasElement.width = video.videoWidth;
     canvasElement.height = video.videoHeight;
@@ -293,29 +307,12 @@ async function predictWebcam() {
                     // Debug log để kiểm tra handedness
                     console.log(`Hand ${i}: ${handedness}`);
                     
-                    // Xác định tay trái/phải dựa trên vị trí của bàn tay trên màn hình
-                    const palmX = landmarks[0].x; // Vị trí x của điểm gốc bàn tay
-                    const displayHandedness = palmX < 0.5 ? "Right" : "Left";
-                    
-                    // Tính khoảng cách giữa ngón cái và ngón trỏ
-                    const thumbTip = landmarks[4]; // Điểm đầu ngón cái
-                    const indexTip = landmarks[8]; // Điểm đầu ngón trỏ
-                    const distance = calculateDistance(thumbTip, indexTip) * 1000; // Nhân với 1000 để có giá trị lớn hơn
-                    
-                    // Ánh xạ khoảng cách thành 8 mức độ sáng (0-255)
-                    // Khoảng cách từ 0-1000 sẽ được chia thành 8 mức
-                    let brightnessLevel;
-                    if (distance < 56) brightnessLevel = 0;
-                    else if (distance < 112) brightnessLevel = 36; 
-                    else if (distance < 168) brightnessLevel = 73; 
-                    else if (distance < 224) brightnessLevel = 109; 
-                    else if (distance < 280) brightnessLevel = 146; 
-                    else if (distance < 336) brightnessLevel = 182; 
-                    else if (distance < 392) brightnessLevel = 218; 
-                    else brightnessLevel = 255;                      
-                    
-                    const clampedBrightness = brightnessLevel;
-
+                    const displayHandedness = handedness.categoryName; // "Left" hoặc "Right"                    
+                    if (displayHandedness === "Left") {
+                        fingerCount = countFingers(landmarks, displayHandedness);
+                    } else {
+                        clampedBrightness = countbrightnes(landmarks, displayHandedness);
+                    }
                     
                     // Vẽ các đường kết nối
                     for (const connection of HAND_CONNECTIONS) {
@@ -344,18 +341,17 @@ async function predictWebcam() {
                         canvasCtx.fillStyle = displayHandedness === "Right" ? "#FF0000" : "#00FF00";
                         canvasCtx.fill();
                     }
-
                     // Vẽ nhãn tay và số ngón tay
-                    const fingerCount = countFingers(landmarks, displayHandedness);
+
                     const labelX = landmarks[0].x * canvasElement.width;
                     const labelY = landmarks[0].y * canvasElement.height;
                     
                     canvasCtx.font = "bold 20px Arial";
                     let text;
                     if (displayHandedness === "Right") {
-                        text = `Tay phải: ${fingerCount} ngón`;
-                    } else {
                         text = `Tay trái: Độ sáng ${clampedBrightness}`;
+                    } else {
+                        text = `Tay phải: ${fingerCount} ngón`;
                     }
                     console.log(`fingerCount: ${fingerCount}, LED Brightness: ${clampedBrightness}`);
                       sendOverwriteData(fingerCount, clampedBrightness, {
